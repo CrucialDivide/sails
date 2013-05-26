@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+'use strict';
 
 // Dependencies
 var _ = require('lodash');
@@ -6,8 +7,9 @@ _.str = require('underscore.string');
 var ejs = require('ejs');
 var fs = require('fs-extra');
 var utils = require('./utils.js');
-var generate = require('./generate.js');
 var forever = require('forever');
+var async = require("async");
+var path = require("path");
 
 // Make existsSync not crash on older versions of Node
 fs.existsSync = fs.existsSync || require('path').existsSync;
@@ -31,7 +33,6 @@ var errors = {
 };
 
 // Read package.json file in specified path
-
 function getPackage(path) {
 	path = _.str.rtrim(path, '/');
 	var packageJson = fs.readFileSync(path + '/package.json', 'utf-8');
@@ -43,229 +44,119 @@ function getPackage(path) {
 	return packageJson;
 }
 
-// Start this app
-if (argv._[0] && _.contains(['lift', 'raise', 'launch', 'start', 'server', 'run', 's', 'l'], argv._[0])) {
+// Iterate through the lib/tools folder for the commands
+//   searchPath is an array of paths
+function fetchCommands(searchPaths) {
+    var path = require("path"),
+        fs = require("fs"),
+        foundCommands = [];
 
-	require('./lift.js')(argv);
+    //console.log("searchPaths", searchPaths);
+    foundCommands = _.map(searchPaths,
+        function(searchPath){
+            var commandFiles = fs.readdirSync(path.join(searchPath));
+
+            //console.log("commandFiles", commandFiles);
+            foundCommands = commandFiles.map(
+                function(commandFile) {
+                    return require(path.join(searchPath, commandFile));
+                }
+            )
+            return foundCommands;
+        }
+    )
+
+    //console.log("FoundCommands", _.flatten(foundCommands));
+    return _.flatten(foundCommands);
 }
-// // Daemonize server
-// else if(argv.d || argv._[0] && _.contains(['forever'], argv._[0])) {
-// 	var forever = require('forever');
-// 	forever.startServer();
-// 	forever.startDaemon('sails lift');
-
-// 	// Create temporary app file
-// 	// fs.writeFileSync(sails.config.appPath + '/app.js', function (){});
-// 	// copy down global install of sails locally if one doesn't already exist
-// 	// if(!fs.existsSync(sails.config.appPath + '/node_modules/sails')) {}
-
-// 	// run file
-// }
-// // Stop all servers
-// else if(argv._[0] && _.contains(['stop', 'kill'], argv._[0])) {
-
-// }
-
-
-// Check if console was requested, if so, launch console
-else if (_.contains(['console'], argv._[0])) {
-	sails.log.ship();
-	sails.log('Welcome to Sails (v'+sails.version +')');
-	sails.log('( to exit, type <CTRL>+<C> )');
-
-	// TODO: instead of lifting the servers, just fire up the ORM and include all the modules
-
-	require('../lib/sails').lift({
-		log: {
-			level: 'silent'
-		}
-	}, function() {
-		repl = require("repl").start("sails> ");
-		repl.on('exit', function() {
-			sails.log.verbose('Closing console');
-			process.exit();
-		});
-	});
-	return; //exit before accidently starting a second sails.
-}
-
-// Check for newer version and upgrade if available.
-else if (_.contains(['upgrade'], argv._[0])) {
-	var sys = require('sys');
-	var exec = require('child_process').exec;
-	var child;
-	var http = require('http');
-	var newest;
-	var current;
-	var options = {
-		host: 'registry.npmjs.org',
-		port: 80,
-		path: '/sails'
-	};
-	http.get(options, function(res) {
-		var jsond = '';
-		var body = '';
-		res.on('data', function (chunk) {
-			body += chunk;
-		});
-		res.on('end', function () {
-			jsond = JSON.parse(body);
-			if (jsond['dist-tags'].latest > sails.version) {
-				// executes `pwd`
-				child = exec("npm install sails@" + jsond['dist-tags'].latest, function (error, stdout, stderr) {
-					if (error !== null) {
-						console.log('exec error: ' + error);
-					}
-					console.log("Upgrade Complete:  You are now on Sails Version: "+jsond['dist-tags'].latest);
-				});
-			} else {
-				console.log("Already Up To Date");
-			}
-		});
-	}).on('error', function(e) {
-		console.error(e);
-	});
-}
-// Get the sails version
-else if (argv.v || argv.version || (argv._[0] && _.contains(['v', 'version'], argv._[0]))) {
-	sails.log.info('v' + sails.version);
-}
-// Basic usage
-else if (argv._.length === 0) {
-	console.log('');
-	sails.log('Welcome to Sails! (v'+sails.version + ')');
-	console.log('');
-	sailsUsage();
-}
-// Generate file(s)
-else if (argv._[0] && (argv._[0].match(/^g$|^ge$|^gen$|^gene$|^gener$|^genera$|^generat$|^generate$/) || argv.g || argv.generate)) {
-
-	verifyArg(1, 'Please specify the name for the new model and controller as the second argument.');
-
-
-	// Generate a model
-	if (argv._[1] === 'model') {
-		var entity = argv._[2];
-		verifyArg(2, 'Please specify the name for the new model as the third argument.');
-
-		// Figure out attributes based on args
-		var options = _.extend({}, argv);
-		var args = argv._.splice(3);
-		options.attributes = [];
-		_.each(args,function(attribute,i){
-			var parts = attribute.split(':');
-			if (!parts[1]) {
-				sails.log.error('Please specify the type for attribute '+(i+1)+ ' "'+parts[0]+'".');
-				process.exit(1);
-			}
-			options.attributes.push({
-				name: parts[0],
-				type: parts[1].toUpperCase()
-			});
-		});
-
-		sails.log.warn('In order to serve the blueprint API for this model, you must now also generate an empty controller.');
-		sails.log.warn('If you want this behavior, run \'sails generate controller '+ entity +'\' to create a blank controller.');
-		generate.generateModel(entity, options);
-	}
-
-	// Generate a controller
-	else if (argv._[1] === 'controller') {
-		var entity = argv._[2];
-		verifyArg(2, 'Please specify the name for the new controller as the third argument.');
-
-		// Figure out actions based on args
-		var options = _.extend({}, argv);
-		options.actions = argv._.splice(3);
-
-		generate.generateController(entity, options);
-	}
-
-	// // Generate a view
-	// else if(argv._[1] === 'view') {
-	// 	var entity = argv._[2];
-	// 	verifyArg(2, "Please specify the name for the new view as the third argument.");
-	// 	// Figure out actions based on args
-	// 	var options = _.extend({},argv);
-	// 	options.actions = argv._.splice(3);
-	// 	generate.generateView(entity, options);
-	// }
-	
-	// Generate an adapter
-	else if (argv._[1] === 'adapter') {
-		var entity = argv._[2];
-		verifyArg(2, "Please specify the name for the new argument as the third argument.");
-
-		// Figure out attributes based on args
-		var options = _.extend({}, argv);
-		generate.generateAdapter(entity, options);
-	}
-	// Otherwise generate a model and controller
-	else {
-		var entity = argv._[1];
-		verifyArg(1, "Please specify the name of the entity as the second argument to generate a model, controller, and view.");
-		sails.log.info("Generating model and controller for " + entity);
-
-		var options = _.extend({}, argv);
-		options.actions = argv._.splice(2);
-
-		generate.generateModel(entity, options);
-		generate.generateController(entity, options);
-	}
-}
-
-
-
-// Create a new app
-// second argument == app name
-else if (argv._[0].match(/^new$/)) {
-
-	verifyArg(1, "Please specify the name of the new project directory to create: e.g.\n sails new <appName>");
-
-	// Default to ejs templates for new projects, but allow user to override with --template
-	var template = 'ejs';
-	if (argv.template) {
-		template = argv.template;
-	}
-	require('./new.js')(argv._[1], template);
-}
-
-// Unknown command, print out usage
-else {
-	console.log('');
-	sailsUsage();
-	sails.log.error (argv._[0] + ' is not a valid action.');
-}
-
-
-
-
-// Display usage
-function sailsUsage() {
-	function leftColumn (str) {
-		var n = (33-str.length);
-		return str + _.str.repeat(' ',n);
-	}
-
-	var usage = 'Usage: sails <command>\n\n';
-	usage += leftColumn('sails lift') + 'Run this Sails app (in the current dir)\n';
-	usage += leftColumn('  [--dev]') + 'with development environment specified \n';
-	usage += leftColumn('  [--prod]') + 'with production environment specified \n';
-	usage += leftColumn('sails console') + 'Run this Sails app (in the current dir & in interactive mode.)\n';
-	usage += leftColumn('sails new <appName>') + 'Create a new Sails project in the current dir\n';
-	usage += leftColumn('sails generate <foo>') + 'Generate api/models/Foo.js and api/controllers/FooController.js\n';
-	usage += leftColumn('sails generate model <foo>') + 'Generate api/models/Foo.js\n';
-	usage += leftColumn('sails generate controller <foo>') + 'Generate api/controllers/FooController.js\n';
-	usage += leftColumn('sails version') + 'Get the current globally installed Sails version';
-
-	sails.log.info(usage);
-}
-
 
 // Verify that an argument exists
 function verifyArg(argNo, msg) {
-	if (!argv._[argNo]) {
-		sails.log.error(msg);
-		process.exit(1);
-	}
+    if (!argv._[argNo]) {
+        sails.log.error(msg);
+        process.exit(1);
+    }
+}
+
+// Attach to utils - create if it doesn't exist
+if (!sails.utils) {
+    sails.utils = {};
+}
+sails.utils.verifyArg = verifyArg;
+
+// Give ourselves a root to work with
+var sailsRoot = path.join(__dirname, "..");
+var searchPaths = [path.join(sailsRoot, "lib", "tools")];
+
+if (sails.paths) {
+    searchPaths.push(sails.paths.config);
+}
+
+var knownCommands = fetchCommands(searchPaths);
+//var knownCommands = fetchCommands("../lib/tools/");
+
+var isCommandMatched = async.detect(
+    knownCommands,
+    function(command, cb) {
+        if (_.isString(command.matchCommand) || _.isArray(command.matchCommand)) {
+            // strings & arrays are tested with just _.contains
+            cb(_.contains(command.matchCommand, argv._[0]));
+        } else if (_.isFunction(command.matchCommand)) {
+            // if it's a function - it should return true|false|null - true if its a match
+            cb(command.matchCommand(argv));
+        }
+    },
+    function(matchedCommand) {
+        //console.log("isCommandMatched:results", matchedCommand);
+
+        if (!_.isUndefined(matchedCommand)) {
+            // We have a winner
+            //sails.log.info("We have a Winner!");
+            matchedCommand.execute(sails, argv);
+        } else {
+            // Basic usage
+            if (argv._.length === 0) {
+                console.log('');
+                sails.log('Welcome to Sails! (v'+sails.version + ')');
+                console.log('');
+            } else {
+                console.log('');
+                sails.log.error (argv._[0] + ' is not a valid action.');
+            }
+            sailsUsage(knownCommands);
+        }
+    }
+)
+
+// Display usage
+function sailsUsage(knownCommands) {
+    // fallback to showing help
+    function leftColumn (str) {
+        var n = (33-str.length);
+        return str + _.str.repeat(' ',n);
+    }
+
+    var usage = 'Usage: sails <command>\n\n';
+
+    _.each(
+        knownCommands,
+        function(command) {
+            // If the first item is an array - then we have an array or arrays
+            if (_.isArray(_.first(command.help))) {
+                _.each(
+                    command.help,
+                    function(helpLine){
+                        //console.log("HelpLine.0", helpLine);
+                        usage += leftColumn(helpLine[0]) + helpLine[1] + '\n';
+                    }
+                )
+            } else {
+                var helpLine = command.help;
+                //console.log("helpLine.1", command, helpLine);
+                usage += leftColumn(command.help[0]) + command.help[1] + '\n';
+            }
+        }
+    )
+
+    sails.log.info(usage);
 }

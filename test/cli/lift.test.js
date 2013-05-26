@@ -67,8 +67,16 @@ describe('Starting sails server with lift', function() {
 
 				sailsServer = spawn(sailsBin, ['lift']);
 
+                // Helpers for tracking down errors
+                sailsServer.stderr.on('data', function(data) {
+                    var dataString = data + '';
+                    //console.log("error", dataString);
+                });
+                sailsServer.on('close', function(data) {
+                    //console.log("close", data.toString());
+                });
 				sailsServer.stdout.on('data', function(data) {
-					var dataString = data + '';
+					var dataString = data + ''; //console.log("data", data.toString());
 					assert(dataString.indexOf('error') === -1);
 
 					// Move out of app directory
@@ -119,7 +127,7 @@ describe('Starting sails server with lift', function() {
 			sailsServer = spawn(sailsBin, ['lift', '--prod']);
 
 			sailsServer.stderr.on('data', function(data) {
-				var dataString = data + '';
+				var dataString = data + ''; console.log("dataString", dataString);
 				if (dataString.indexOf('production') !== -1) {
 
 					done();
