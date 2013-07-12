@@ -1,7 +1,9 @@
 /**
  * Sails uses a number of different strategies to route requests.
- * Here they are top-to-bottom, in order of precedence:
+ * Here they are top-to-bottom, in order of precedence.
  *
+ * For more information on routes, check out:
+ * http://sailsjs.org/#documentation
  */
 
 
@@ -37,6 +39,7 @@ module.exports.routes = {
 	    view  : 'home'
 	}
 
+
 	/*
 	// But what if you want your home page to display
 	// a signup form located at `views/user/signup.ejs`?
@@ -49,19 +52,19 @@ module.exports.routes = {
 	// You might want your home route to serve an interface using custom logic.
 	// In this scenario, you have a custom controller `MessageController`
 	// with an `inbox` action.
-	'/'	: 'message.inbox'
+	'/'	: 'MessageController.inbox'
 
 
 	// Alternatively, you can use the more verbose syntax:
 	'/': {
-		controller	: 'message',
+		controller	: 'MessageController',
 		action		: 'inbox'
 	}
 
 
 	// If you decided to call your action `index` instead of `inbox`,
-	// you can just use:
-	'/': 'message'
+	// since the `index` action is the default, you can shortcut even further to:
+	'/': 'MessageController'
 
 
 	// Up until now, we haven't specified a specific HTTP method/verb
@@ -70,14 +73,16 @@ module.exports.routes = {
 	// (GET, POST, PUT, DELETE, etc.), just specify the verb before the path.
 	// For example, if you have a `UserController` with a `signup` action,
 	// and somewhere else, you're serving a signup form looks like: 
-	<form action="/signup">
-		<input name="username" type="text"/>
-		<input name="password" type="password"/>
-	</form>
+	//
+	//		<form action="/signup">
+	//			<input name="username" type="text"/>
+	//			<input name="password" type="password"/>
+	//			<input type="submit"/>
+	//		</form>
 
 
 	// You could define the following route:
-	'post /signup'	: 'user.signup'
+	'post /signup'	: 'UserController.signup'
 
 
 	// Finally, here's an example of how you would route all GET requests 
@@ -161,7 +166,7 @@ module.exports.routes = {
  *
  */
 
-module.exports[404] = function notFound (req, res, defaultNotFoundBehavior) {
+module.exports[404] = function pageNotFound (req, res, defaultNotFoundBehavior) {
 	
 	// Respond to request, respecting any attempts at content negotiation
 	if (req.wantsJSON) {
@@ -182,7 +187,7 @@ module.exports[404] = function notFound (req, res, defaultNotFoundBehavior) {
  * 500 (server error) handler
  */
 
-module.exports[500] = function (errors, req, res, defaultErrorBehavior) {
+module.exports[500] = function serverErrorOccurred (errors, req, res, defaultErrorBehavior) {
 
 	// Ensure that `errors` is a list
 	var displayedErrors = (typeof errors !== 'object' || !errors.length ) ?
@@ -192,10 +197,12 @@ module.exports[500] = function (errors, req, res, defaultErrorBehavior) {
 	// Ensure that each error is formatted correctly
 	// Then log them
 	for (var i in displayedErrors) {
-		if (!displayedErrors[i] instanceof Error) {
+		if (!(displayedErrors[i] instanceof Error)) {
 			displayedErrors[i] = require('util').inspect(new Error(displayedErrors[i]));
 			sails.log.error(displayedErrors[i]);
-		}
+		} else {
+      displayedErrors[i] = displayedErrors[i].stack;
+    }
 	}
 
 	// In production, don't display any identifying information about the error(s)
