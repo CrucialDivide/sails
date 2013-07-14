@@ -1,4 +1,6 @@
 /**
+ * Routes
+ * 
  * Sails uses a number of different strategies to route requests.
  * Here they are top-to-bottom, in order of precedence.
  *
@@ -157,83 +159,7 @@ module.exports.routes = {
  */
 
 
-
-
 /**
- * (7) Default 404 (not found) handler
- *
- * If no matches are found, Sails will respond using this handler:
- *
+ * Finally, if nothing else matched, the default 404 handler is triggered.
+ * See `config/404.js` to adjust your app's 404 logic.
  */
-
-module.exports[404] = function pageNotFound (req, res, defaultNotFoundBehavior) {
-	
-	// If the user-agent wants a JSON response,
-	if (req.wantsJSON || 
-		// the views hook is disabled,
-		!sails.config.hooks.views || 
-		// or the 404 view doesn't exist,
-		!sails.hooks.views.middleware[404]) {
-		// send JSON
-		return res.json({
-			status: 404
-		}, 404);
-	}
-
-	// Otherwise, serve the `views/404.*` page
-	res.view('404');
-	
-};
-
-
-
-
-/**
- * (!) Default server error handler
- *
- * If an error is thrown, Sails will respond using this default
- * 500 (server error) handler
- */
-
-module.exports[500] = function serverErrorOccurred(errors, req, res, defaultErrorBehavior) {
-
-	// Ensure that `errors` is a list
-	var displayedErrors = (typeof errors !== 'object' || !errors.length) ?
-		[errors] :
-		errors;
-
-	// Ensure that each error is formatted correctly
-	// Then log them
-	for (var i in displayedErrors) {
-		if (!(displayedErrors[i] instanceof Error)) {
-			displayedErrors[i] = require('util').inspect(new Error(displayedErrors[i]));
-			sails.log.error(displayedErrors[i]);
-		} else {
-			displayedErrors[i] = displayedErrors[i].stack;
-		}
-		sails.log.error(displayedErrors[i]);
-	}
-
-	// In production, don't display any identifying information about the error(s)
-	var response = {};
-	if (sails.config.environment === 'development') {
-		response = {
-			status: 500,
-			errors: displayedErrors
-		};
-	}
-
-	// If the user-agent wants a JSON response,
-	if (req.wantsJSON ||
-	// the views hook is disabled,
-	!sails.config.hooks.views ||
-	// or the 500 view doesn't exist,
-	!sails.hooks.views.middleware[500]) {
-		// send JSON
-		return res.json(response, 500);
-	}
-
-	// Otherwise, send the `views/500.*` page
-	res.view('500', response);
-
-};
