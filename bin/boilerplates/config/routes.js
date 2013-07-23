@@ -11,14 +11,10 @@
 
 
 /**
- * (1) Static assets
+ * (1) Core middleware
  *
- * Flat files in your `assets` directory- (these are sometimes referred to as 'public')
- * If you have an image file at `/assets/images/foo.jpg`, it will be made available
- * automatically via the route:  `/images/foo.jpg`
- *
+ * Middleware included with `app.use` is run first, before the router
  */
-
 
 
 /**
@@ -80,14 +76,20 @@ module.exports.routes = {
   //			<input type="submit"/>
   //		</form>
 
-
-  // You could define the following route:
+  // You would want to define the following route to handle your form:
   'post /signup': 'UserController.signup'
 
 
-  // Finally, here's an example of how you would route all GET requests 
-  // to the `/google` route to Google's website:
-  'get /google': 'http://google.com'
+  // What about the ever-popular "vanity URLs" aka URL slugs?
+  // (you remember doing this with `mod_rewrite` in PHP)
+  //
+  // This is where you want to set up root-relative dynamic routes like:
+  // http://yourwebsite.com/twinkletoezz993
+  //
+  // You still want to allow requests through to the static assets,
+  // So we need to set up this route to allow URLs through that have a trailing ".":
+  // (e.g. your javascript, CSS, and image files)
+  'get /*(^.*)': 'UserController.profile'
 
   */
 };
@@ -148,6 +150,16 @@ module.exports.routes = {
  *		delete /foo/:id	->	delete lampshade with id=:id
  *
  */
+
+/**
+ * (7) Static assets
+ *
+ * Flat files in your `assets` directory- (these are sometimes referred to as 'public')
+ * If you have an image file at `/assets/images/foo.jpg`, it will be made available
+ * automatically via the route:  `/images/foo.jpg`
+ *
+ */
+
 
 
 /**

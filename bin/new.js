@@ -64,10 +64,9 @@ module.exports = function(sails) {
 			utils.generateDir(outputPath);
 		}
 
-		console.log('\n');
-		sails.log.info('Building new Sails.js app in ' + outputPath + '...');
+		sails.log.debug('Building new Sails.js app in ' + outputPath + '...');
 		if (useLinker) {
-			sails.log.info('Using asset auto-linker...');
+			sails.log.info('Using asset linker...');
 		}
 
 		// useLinker will determin the assets dir stucture for the new sails project
@@ -97,7 +96,7 @@ module.exports = function(sails) {
 			// If using linker, override the layout file with linker layout file
 			if (useLinker) {
 
-				if (templateLang === 'hbs' || templateLang === 'jade') {
+				if (templateLang !== 'ejs') {
 					sails.log.warn('Automatic asset linking is not implemented for the `' + templateLang + '` view ' +
 						'engine at this time. You must modify the Gruntfile yourself for this feature to work.');
 				}
@@ -131,9 +130,11 @@ module.exports = function(sails) {
 			version: '0.0.0',
 			description: 'a Sails application',
 			dependencies: {
-				sails: sails.version,
-				grunt: '0.4.1',
-				optimist: '0.3.4' // TODO: remove this and handle it differently
+				sails			: sails.version,
+				grunt			: '0.4.1',
+				'sails-disk'	: '~0.9.0',
+				ejs				: '0.8.4',
+				optimist		: '0.3.4' // TODO: remove this and handle it differently
 			},
 			scripts: {
 				// Include this later when we have "sails test" ready.
@@ -160,6 +161,7 @@ module.exports = function(sails) {
 		utils.copySailsDependency('optimist', outputPath + '/node_modules');
 		utils.copySailsDependency('grunt', outputPath + '/node_modules');
 		utils.copySailsDependency('sails-disk', outputPath + '/node_modules');
+		utils.copySailsDependency('ejs', outputPath + '/node_modules');
 
 		// Other grunt dependencies are automatically pulled from sails core deps.
 
