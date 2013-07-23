@@ -27,7 +27,7 @@
     "lib": "lib"
   },
   "dependencies": {
-    "waterline": "git@github.com:CrucialDivide/waterline.git#master",
+    "waterline": "git+https://github.com/CrucialDivide/waterline#master",
     "sails-disk": "~0.9.0",
     "express": "3.2.6",
     "socket.io": "0.9.14",
