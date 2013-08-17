@@ -192,22 +192,12 @@ module.exports = function(sails) {
 		}
 		else copySails_cb();
 
-<<<<<<< HEAD
 		// Copy Sails itself into new project as a local dependency
 		//
 		// TODO:	examine using a symbolic link for the node_modules
 		// 			instead of copying the directory over directly,
 		//			since it would be much quicker, and wouldn't hurt anything
 		utils.copySails(outputPath + '/node_modules/sails');
-||||||| merged common ancestors
-		// Copy Sails itself into new project as a local dependency
-		//
-		// TODO:	examine using a symbolic link for the node_modules
-		// 			instead of copying the directory over directly,
-		//			since it would be much quicker, and wouldn't hurt anything
-		utils.copySails(outputPath + '/node_modules/sails');
-=======
->>>>>>> c83f10fc67d923126e7fefddf81df97b6a746fb6
 
 		// Let the user know that `sails new` was successful
 		function copySails_cb (err) {
