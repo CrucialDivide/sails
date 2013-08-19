@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "waterline": "git+https://github.com/CrucialDivide/waterline#master",
+    "express-subdomains": "git+https://github.com/CrucialDivide/express-subdomains#master",
     "sails-disk": "~0.9.1",
     "express": "3.2.6",
     "socket.io": "0.9.14",
